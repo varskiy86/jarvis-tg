@@ -1,0 +1,13 @@
+{
+  "TELEGRAM_BOT_TOKEN": "8606993452:AAH36fAUS1Qfjyl3CMOzQ6bn8VSJvdexK3A",
+  "GEMINI_API_KEY": "AIzaSyDJqp5Kd3HbWj1fon2jCcZD25gyu9Srsas",
+  "ADMIN_ID": 8206357726,
+  "BOT_NAME": "J.A.R.V.I.S.",
+
+  "_комментарии": {
+    "TELEGRAM_BOT_TOKEN": "Получить у @BotFather в Telegram",
+    "GEMINI_API_KEY": "Получить на ai.google.dev (бесплатно)",
+    "ADMIN_ID": "Твой Telegram ID (узнать у @userinfobot)",
+    "BOT_NAME": "Имя бота в ответах"
+  }
+}
