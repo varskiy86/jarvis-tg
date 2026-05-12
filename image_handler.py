@@ -19,7 +19,8 @@ class ImageHandler:
     POLLINATIONS_URL = "https://image.pollinations.ai/prompt/"
     
     def __init__(self):
-        self.gemini_model = genai.GenerativeModel(config.GEMINI_MODEL)
+        import google.genai as genai_new
+        self.gemini_model = genai_new.GenerativeModel(config.GEMINI_MODEL)
     
     async def generate_image(self, prompt: str, width: int = 1024, height: int = 1024, 
                             seed: Optional[int] = None, enhance: bool = True) -> Optional[bytes]:

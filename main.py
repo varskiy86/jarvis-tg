@@ -12,6 +12,7 @@ from typing import Dict, List
 
 # AI провайдеры
 import google.generativeai as genai
+import google.genai as genai_new
 from huggingface_hub import InferenceClient
 
 import pyttsx3
@@ -83,8 +84,8 @@ class AIClient:
         self.model = None
         
         if self.provider == "gemini":
-            genai.configure(api_key=config.GEMINI_API_KEY)
-            self.model = genai.GenerativeModel(
+            genai_new.configure(api_key=config.GEMINI_API_KEY)
+            self.model = genai_new.GenerativeModel(
                 model_name=config.GEMINI_MODEL,
                 system_instruction=config.SYSTEM_PROMPT
             )
