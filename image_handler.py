@@ -20,7 +20,8 @@ class ImageHandler:
     
     def __init__(self):
         import google.genai as genai_new
-        self.gemini_model = genai_new.GenerativeModel(config.GEMINI_MODEL)
+        # В новом API используем client напрямую
+        self.gemini_client = genai_new.Client(api_key=config.GEMINI_API_KEY)
     
     async def generate_image(self, prompt: str, width: int = 1024, height: int = 1024, 
                             seed: Optional[int] = None, enhance: bool = True) -> Optional[bytes]:

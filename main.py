@@ -85,10 +85,8 @@ class AIClient:
         
         if self.provider == "gemini":
             genai_new.configure(api_key=config.GEMINI_API_KEY)
-            self.model = genai_new.GenerativeModel(
-                model_name=config.GEMINI_MODEL,
-                system_instruction=config.SYSTEM_PROMPT
-            )
+            # В новом API нет GenerativeModel, используем client.models.generate_content
+            self.model = None  # Будем использовать client напрямую
         elif self.provider == "huggingface":
             # Инициализация Hugging Face API (без локальных моделей)
             self.hf_client = InferenceClient(
@@ -111,12 +109,16 @@ class AIClient:
     
     async def _gemini_response(self, user_id: int, user_message: str) -> str:
         """Ответ через Gemini"""
-        context = get_or_create_context(user_id)
-        chat = self.model.start_chat(history=context)
+        # В новом API используем client.models.generate_content напрямую
+        client = genai_new.Client(api_key=config.GEMINI_API_KEY)
         
         response = await asyncio.to_thread(
-            chat.send_message,
-            user_message
+            client.models.generate_content,
+            model=config.GEMINI_MODEL,
+            contents=user_message,
+            config=genai_new.types.GenerateContentConfig(
+                system_instruction=config.SYSTEM_PROMPT
+            )
         )
         
         update_context(user_id, "user", user_message)
