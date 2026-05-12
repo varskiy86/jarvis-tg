@@ -9,7 +9,7 @@
   "_комментарии": {
     "TELEGRAM_BOT_TOKEN": "Получить у @BotFather в Telegram",
     "GEMINI_API_KEY": "Получить на ai.google.dev (бесплатно)",
-    "HUGGINGFACE_API_KEY": "Опционально, для приватных моделей",
+    "HUGGINGFACE_API_KEY": "sk-7402230422177425aca7bb29dc0280b38362e8b2c849cc89",
     "ADMIN_ID": "Твой Telegram ID (узнать у @userinfobot)",
     "BOT_NAME": "Имя бота в ответах",
     "AI_PROVIDER": "huggingface или gemini"
