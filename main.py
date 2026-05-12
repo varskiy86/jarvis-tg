@@ -20,6 +20,7 @@ import speech_recognition as sr
 from pydub import AudioSegment
 from telegram import Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
+from telegram.ext import State
 from telegram.constants import ParseMode
 import telegram
 
