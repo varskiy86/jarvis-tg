@@ -17,15 +17,10 @@ from huggingface_hub import InferenceClient
 import pyttsx3
 import speech_recognition as sr
 from pydub import AudioSegment
-from aiogram import Bot, Dispatcher, F, types
-from aiogram.enums import ParseMode
-from aiogram.filters import Command, CommandStart
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message, FSInputFile, BufferedInputFile
-from aiogram.utils.markdown import hbold, hitalic
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.ext import Application, CommandHandler, MessageHandler, Filters, ContextTypes, ConversationHandler
+from telegram.constants import ParseMode
+import telegram
 
 from config import config
 from image_handler import image_handler
@@ -63,8 +58,8 @@ error_logger.addHandler(error_handler)
 error_logger.setLevel(logging.ERROR)
 
 # Инициализация бота
-bot = Bot(token=config.TELEGRAM_BOT_TOKEN)
-dp = Dispatcher(storage=MemoryStorage())
+application = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
+bot = application.bot
 
 # Состояния FSM
 class ImageGenState(StatesGroup):
@@ -295,13 +290,14 @@ async def speech_to_text(voice_file: BytesIO) -> str:
         return f"Ошибка распознавания: {str(e)[:50]}"
 
 
-@dp.message(CommandStart())
-async def cmd_start(message: Message):
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработчик команды /start"""
+    logger.info(f"[{update.effective_user.id}] {update.effective_user.username} вызвал /start")
+    
     welcome_text = f"""
-{hbold('J.A.R.V.I.S. активирован.')}
+*J.A.R.V.I.S. активирован.*
 
-{hitalic('Добро пожаловать, сэр.')}
+_Добро пожаловать, сэр._
 
 Я ваш персональный ИИ-ассистент. Готов к работе.
 
@@ -309,34 +305,34 @@ async def cmd_start(message: Message):
 • Текстовые разговоры в моём фирменном стиле
 • Голосовые сообщения (отправьте войс)
 • Получение голосовых ответов — скажите "голосом" или "voice"
-• 🎨 Генерация изображений (AI, бесплатно)
-• 📷 Анализ и редактирование фото
+• \ud83e\udfbc *Генерация изображений (AI, бесплатно)*
+• \ud83d\udcf1 *Анализ и редактирование фото*
 • Помощь с кодом, анализом, идеями
 • Память контекста разговора
 
-⚡ {hbold('Команды:')}
+\ud83d\udc48 *Команды:*
 /start — активация
 /clear — очистить контекст
 /status — статус системы
 /generate — сгенерировать картинку
 /edit — редактировать фото (фильтры)
 
-🖼️ {hbold('Работа с фото:')}
+\ud83d\udcf1 *Работа с фото:*
 • Просто отправь фото — я проанализирую
 • Отправь с подписью — выполню запрос ("опиши", "измени фон" и т.д.)
 
-� {hbold('Приём файлов:')}
-• 📄 Документы (.py, .js, .txt, .md и др.) — анализирую код и текст
-• 📦 Архивы (.zip, .rar) — сохраняю
-• 🎬 Видео — принимаю до 50MB
-• 🎵 Аудио — сохраняю метаданные
+\ud83d\udc4c *Приём файлов:*
+• \ud83d\udc4c Документы (.py, .js, .txt, .md и др.) — анализирую код и текст
+• \ud83d\udc4d Архивы (.zip, .rar) — сохраняю
+• \ud83c\udfa5 Видео — принимаю до 50MB
+• \ud83c\udfb6 Аудио — сохраняю метаданные
 
-�🔐 {hbold('Администрирование:')}
+\ud83d\udc6e\ud83c\udf0e *Администрирование:*
 /admin — панель управления (для админов)
 
-{hitalic('Чем могу быть полезен, сэр?')}
+_Чем могу быть полезен, сэр?_
     """
-    await message.answer(welcome_text, parse_mode=ParseMode.HTML)
+    await update.message.reply_text(welcome_text, parse_mode=ParseMode.MARKDOWN_V2)
 
 
 @dp.message(Command("clear"))
@@ -1332,8 +1328,8 @@ async def main():
     logger.info("J.A.R.V.I.S. запускается...")
     
     # Проверяем конфигурацию
-    if not config.TELEGRAM_BOT_TOKEN or not config.GEMINI_API_KEY:
-        logger.error("Отсутствуют необходимые токены! Проверьте .env файл.")
+    if not config.TELEGRAM_BOT_TOKEN:
+        logger.error("Отсутствует TELEGRAM_BOT_TOKEN! Проверьте config.json.")
         return
     
     # Инициализируем первого супер-админа из config
@@ -1341,21 +1337,17 @@ async def main():
         try:
             admin_id = int(config.ADMIN_ID)
             if not db.is_admin(admin_id):
-                db.add_admin(
-                    user_id=admin_id,
-                    username="owner",
-                    added_by=admin_id,
-                    is_super=True
-                )
-                logger.info(f"Супер-админ инициализирован: {admin_id}")
-        except ValueError:
-            logger.warning("Неверный формат ADMIN_ID в .env")
+                db.add_admin(admin_id, "super_admin", "system")
+        except Exception as e:
+            logger.error(f"Ошибка инициализации админа: {e}")
     
-    logger.info(f"Модель Gemini: {config.GEMINI_MODEL}")
-    logger.info(f"Всего админов: {db.get_admin_count()}")
     logger.info("Бот готов к работе")
     
-    await dp.start_polling(bot)
+    # Регистрируем хендлеры
+    setup_handlers()
+    
+    # Запуск бота
+    await application.run_polling()
 
 
 if __name__ == "__main__":
