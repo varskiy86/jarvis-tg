@@ -18,7 +18,7 @@ import pyttsx3
 import speech_recognition as sr
 from pydub import AudioSegment
 from telegram import Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Application, CommandHandler, MessageHandler, Filters, ContextTypes, ConversationHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from telegram.constants import ParseMode
 import telegram
 
@@ -335,22 +335,19 @@ _Чем могу быть полезен, сэр?_
     await update.message.reply_text(welcome_text, parse_mode=ParseMode.MARKDOWN_V2)
 
 
-@dp.message(Command("clear"))
-async def cmd_clear(message: Message):
+async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Очистка контекста"""
-    user_id = message.from_user.id
+    user_id = update.effective_user.id
     if user_id in chat_contexts:
         chat_contexts[user_id] = []
-    await message.answer(
-        f"{hitalic('Контекст разговора очищен, сэр. Начинаем с чистого листа.')}",
-        parse_mode=ParseMode.HTML
+    await update.message.reply_text(
+        f"_Контекст разговора очищен, сэр. Начинаем с чистого листа._"
     )
 
 
-@dp.message(Command("status"))
-async def cmd_status(message: Message):
+async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Статус системы"""
-    user_id = message.from_user.id
+    user_id = update.effective_user.id
     context_len = len(chat_contexts.get(user_id, []))
     
     # Проверяем права
@@ -380,12 +377,10 @@ async def cmd_status(message: Message):
     await message.answer(status_text, parse_mode=ParseMode.HTML)
 
 
-@dp.message(F.voice)
-async def handle_voice(message: Message):
+async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка голосовых сообщений"""
-    processing_msg = await message.answer(
-        f"{hitalic('Распознаю речь, сэр...')}",
-        parse_mode=ParseMode.HTML
+    processing_msg = await update.message.reply_text(
+        f"_Распознаю речь, сэр..._"
     )
     
     try:
@@ -403,10 +398,10 @@ async def handle_voice(message: Message):
         )
         
         # Генерируем ответ
-        response = await generate_response(message.from_user.id, recognized_text)
+        response = await generate_response(update.effective_user.id, recognized_text)
         
         # Отправляем текстовый ответ
-        await processing_msg.edit_text(response[:4000], parse_mode=ParseMode.HTML)
+        await processing_msg.edit_text(response[:4000])
         
     except Exception as e:
         logger.error(f"Ошибка обработки голоса: {e}")
@@ -416,11 +411,12 @@ async def handle_voice(message: Message):
         )
 
 
-@dp.message()
-async def handle_text(message: Message):
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обработка текстовых сообщений"""
-    user_id = message.from_user.id
-    user_text = message.text.strip()
+    user_id = update.effective_user.id
+    user_text = update.message.text.strip()
+    
+    logger.info(f"[{user_id}] {update.effective_user.username}: {user_text[:100]}...")
     
     # Проверяем запрос голосового ответа
     voice_mode = any(word in user_text.lower() for word in ['голосом', 'voice', 'скажи', 'озвучь'])
@@ -435,20 +431,19 @@ async def handle_text(message: Message):
         clean_text = "Привет, J.A.R.V.I.S."
     
     # Показываем что печатаем
-    await bot.send_chat_action(message.chat.id, "typing")
+    await update.message.reply_text("_Думаю..._")
     
     # Генерируем ответ
     response = await generate_response(user_id, clean_text)
     
     if voice_mode:
         # Отправляем голосовой ответ
-        await bot.send_chat_action(message.chat.id, "record_voice")
-        
         voice_path = await asyncio.to_thread(text_to_speech, response[:500])
         
         if voice_path and os.path.exists(voice_path):
-            voice_file = FSInputFile(voice_path)
-            await message.answer_voice(voice_file, caption=response[:400])
+            voice_file = open(voice_path, 'rb')
+            await update.message.reply_voice(voice_file, caption=response[:400])
+            voice_file.close()
             
             # Удаляем временный файл
             try:
@@ -456,24 +451,21 @@ async def handle_text(message: Message):
             except:
                 pass
         else:
-            await message.answer(response[:4000], parse_mode=ParseMode.HTML)
+            await update.message.reply_text(response[:4000])
     else:
         # Отправляем текстовый ответ
-        await message.answer(response[:4000], parse_mode=ParseMode.HTML)
+        await update.message.reply_text(response[:4000])
 
 
 # ==================== ОБРАБОТКА ИЗОБРАЖЕНИЙ ====================
 
-@dp.message(Command("generate"))
-async def cmd_generate(message: Message, state: FSMContext):
+async def cmd_generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Команда генерации изображения"""
-    await state.set_state(ImageGenState.waiting_for_prompt)
-    await message.answer(
-        f"{hitalic('Готов к генерации, сэр.')}\n\n"
-        f"🎨 {hbold('Опишите, что сгенерировать:')}\n"
+    await update.message.reply_text(
+        f"_Готов к генерации, сэр._\n\n"
+        f"🎨 *Опишите, что сгенерировать:*\n"
         f"Например: «космический корабль в стиле киберпанк, неоновые огни»\n\n"
-        f"{hitalic('Можно на русском или английском.')}",
-        parse_mode=ParseMode.HTML
+        f"_Можно на русском или английском._"
     )
 
 
