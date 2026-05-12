@@ -152,7 +152,13 @@ class AIClient:
             return result
         except Exception as e:
             logger.error(f"Hugging Face ошибка: {e}")
-            return "Сэр, возникла техническая неисправность. Попробуйте снова."
+            # Fallback на Gemini если Hugging Face не работает
+            logger.info("Fallback на Gemini API")
+            try:
+                return await self._gemini_response(user_id, user_message)
+            except Exception as gemini_error:
+                logger.error(f"Gemini fallback ошибка: {gemini_error}")
+                return "Сэр, возникла техническая неисправность. Попробуйте снова."
 
 # Инициализация AI клиента
 ai_client = AIClient()
