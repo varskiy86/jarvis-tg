@@ -14,11 +14,12 @@ from typing import Dict, List
 import google.generativeai as genai
 import google.genai as genai_new
 from huggingface_hub import InferenceClient
+import openai
 
 import pyttsx3
 import speech_recognition as sr
 from pydub import AudioSegment
-from telegram import Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton, Message
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 from telegram.constants import ParseMode
 import telegram
@@ -75,7 +76,7 @@ class AIClient:
         
         if self.provider == "gemini":
             genai_new.configure(api_key=config.GEMINI_API_KEY)
-            # В новом API нет GenerativeModel, используем client.models.generate_content
+            # В новом API нет GenerativeModel, используем client напрямую
             self.model = None  # Будем использовать client напрямую
         elif self.provider == "huggingface":
             # Инициализация Hugging Face API (без локальных моделей)
@@ -83,6 +84,10 @@ class AIClient:
                 model="mistralai/Mistral-7B-Instruct-v0.2",
                 token=config.HUGGINGFACE_API_KEY or None
             )
+        elif self.provider == "openai":
+            # Инициализация OpenAI API
+            openai.api_key = config.OPENAI_API_KEY
+            self.model = None
         else:
             raise ValueError(f"Неизвестный AI провайдер: {self.provider}")
     
@@ -93,28 +98,28 @@ class AIClient:
                 return await self._gemini_response(user_id, user_message)
             elif self.provider == "huggingface":
                 return await self._huggingface_response(user_id, user_message)
+            elif self.provider == "openai":
+                return await self._openai_response(user_id, user_message)
         except Exception as e:
             logger.error(f"Ошибка AI: {e}")
             return f"Техническая неисправность, сэр. Попробуйте снова через минуту."
     
-    async def _gemini_response(self, user_id: int, user_message: str) -> str:
-        """Ответ через Gemini"""
-        # В новом API используем client.models.generate_content напрямую
-        client = genai_new.Client(api_key=config.GEMINI_API_KEY)
+    async def _openai_response(self, user_id: int, user_message: str) -> str:
+        """Ответ через OpenAI"""
+        client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
         
         response = await asyncio.to_thread(
-            client.models.generate_content,
-            model=config.GEMINI_MODEL,
-            contents=[user_message],
-            config=genai_new.types.GenerateContentConfig(
-                system_instruction=config.SYSTEM_PROMPT
-            )
+            client.chat.completions.create,
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": user_message}],
+            max_tokens=150
         )
         
+        result = response.choices[0].message.content
         update_context(user_id, "user", user_message)
-        update_context(user_id, "model", response.text)
+        update_context(user_id, "model", result)
         
-        return response.text
+        return result
     
     async def _huggingface_response(self, user_id: int, user_message: str) -> str:
         """Ответ через Hugging Face API"""

@@ -9,12 +9,12 @@ with open(_config_path, 'r', encoding='utf-8') as f:
 
 class Config:
     # Ключи из config.json (редактируй только этот файл!)
-    TELEGRAM_BOT_TOKEN = _config_data.get("TELEGRAM_BOT_TOKEN", "")
-    GEMINI_API_KEY = _config_data.get("GEMINI_API_KEY", "")
-    HUGGINGFACE_API_KEY = _config_data.get("HUGGINGFACE_API_KEY", "")
-    ADMIN_ID = _config_data.get("ADMIN_ID", 0)
-    BOT_NAME = _config_data.get("BOT_NAME", "J.A.R.V.I.S.")
-    AI_PROVIDER = _config_data.get("AI_PROVIDER", "huggingface")
+    TELEGRAM_BOT_TOKEN = _config_data.get("8606993452:AAH36fAUS1Qfjyl3CMOzQ6bn8VSJvdexK3A", "")
+    GEMINI_API_KEY = _config_data.get("AIzaSyDJqp5Kd3HbWj1fon2jCcZD25gyu9Srsas", "")
+    HUGGINGFACE_API_KEY = _config_data.get("sk-proj-R8n5J5qP8W7vT3Blb3FJ3W6", "")
+    ADMIN_ID = _config_data.get("8206357726", 0)
+    BOT_NAME = _config_data.get("J.A.R.V.I.S.", "J.A.R.V.I.S.")
+    AI_PROVIDER = _config_data.get("openai", "huggingface")
     
     # Настройки Gemini
     GEMINI_MODEL = "gemini-2.0-flash"

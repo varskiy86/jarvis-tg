@@ -2,16 +2,18 @@
   "TELEGRAM_BOT_TOKEN": "8606993452:AAH36fAUS1Qfjyl3CMOzQ6bn8VSJvdexK3A",
   "GEMINI_API_KEY": "AIzaSyDJqp5Kd3HbWj1fon2jCcZD25gyu9Srsas",
   "HUGGINGFACE_API_KEY": "",
+  "OPENAI_API_KEY": "sk-proj-R8n5J5qP8W7vT3Blb3FJ3W6",
   "ADMIN_ID": 8206357726,
   "BOT_NAME": "J.A.R.V.I.S.",
-  "AI_PROVIDER": "huggingface",
+  "AI_PROVIDER": "openai",
 
   "_комментарии": {
     "TELEGRAM_BOT_TOKEN": "Получить у @BotFather в Telegram",
     "GEMINI_API_KEY": "Получить на ai.google.dev (бесплатно)",
     "HUGGINGFACE_API_KEY": "sk-7402230422177425aca7bb29dc0280b38362e8b2c849cc89",
+    "OPENAI_API_KEY": "",
     "ADMIN_ID": "Твой Telegram ID (узнать у @userinfobot)",
     "BOT_NAME": "Имя бота в ответах",
-    "AI_PROVIDER": "huggingface или gemini"
+    "AI_PROVIDER": "huggingface, gemini или openai"
   }
 }
