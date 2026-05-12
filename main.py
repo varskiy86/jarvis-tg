@@ -10,7 +10,12 @@ import os
 from io import BytesIO
 from typing import Dict, List
 
+# AI провайдеры
 import google.generativeai as genai
+from huggingface_hub import InferenceClient
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+import torch
+
 import pyttsx3
 import speech_recognition as sr
 from pydub import AudioSegment
@@ -51,12 +56,98 @@ class AdminState(StatesGroup):
     waiting_for_ban_reason = State()
     waiting_for_broadcast = State()
 
-# Инициализация Gemini
-genai.configure(api_key=config.GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel(
-    model_name=config.GEMINI_MODEL,
-    system_instruction=config.SYSTEM_PROMPT
-)
+# ========== AI КЛИЕНТЫ ==========
+
+class AIClient:
+    """Универсальный клиент для разных AI провайдеров"""
+    
+    def __init__(self):
+        self.provider = config.AI_PROVIDER.lower()
+        self.model = None
+        
+        if self.provider == "gemini":
+            genai.configure(api_key=config.GEMINI_API_KEY)
+            self.model = genai.GenerativeModel(
+                model_name=config.GEMINI_MODEL,
+                system_instruction=config.SYSTEM_PROMPT
+            )
+        elif self.provider == "huggingface":
+            # Инициализация Hugging Face
+            self.hf_client = InferenceClient(
+                model="mistralai/Mistral-7B-Instruct-v0.2",
+                token=config.HUGGINGFACE_API_KEY or None
+            )
+            # Локальная модель для скорости
+            try:
+                self.local_model = pipeline(
+                    "text-generation",
+                    model="microsoft/DialoGPT-medium",
+                    torch_dtype=torch.float16,
+                    device_map="auto"
+                )
+            except:
+                self.local_model = None
+        else:
+            raise ValueError(f"Неизвестный AI провайдер: {self.provider}")
+    
+    async def generate_response(self, user_id: int, user_message: str) -> str:
+        """Генерация ответа через выбранный провайдер"""
+        try:
+            if self.provider == "gemini":
+                return await self._gemini_response(user_id, user_message)
+            elif self.provider == "huggingface":
+                return await self._huggingface_response(user_id, user_message)
+        except Exception as e:
+            logger.error(f"Ошибка AI: {e}")
+            return f"Техническая неисправность, сэр. Попробуйте снова через минуту."
+    
+    async def _gemini_response(self, user_id: int, user_message: str) -> str:
+        """Ответ через Gemini"""
+        context = get_or_create_context(user_id)
+        chat = self.model.start_chat(history=context)
+        
+        response = await asyncio.to_thread(
+            chat.send_message,
+            user_message
+        )
+        
+        update_context(user_id, "user", user_message)
+        update_context(user_id, "model", response.text)
+        
+        return response.text
+    
+    async def _huggingface_response(self, user_id: int, user_message: str) -> str:
+        """Ответ через Hugging Face"""
+        try:
+            # Пробуем локальную модель сначала
+            if self.local_model:
+                response = await asyncio.to_thread(
+                    self.local_model,
+                    user_message,
+                    max_length=200,
+                    num_return_sequences=1,
+                    temperature=0.7
+                )
+                result = response[0]["generated_text"] if response else "Не удалось сгенерировать ответ"
+            else:
+                # Fallback на API Hugging Face
+                response = await asyncio.to_thread(
+                    self.hf_client.text_generation,
+                    prompt=user_message,
+                    max_new_tokens=200
+                )
+                result = response[0]["generated_text"]
+            
+            update_context(user_id, "user", user_message)
+            update_context(user_id, "model", result)
+            
+            return result
+        except Exception as e:
+            logger.error(f"Hugging Face ошибка: {e}")
+            return "Сэр, возникла техническая неисправность. Попробуйте снова."
+
+# Инициализация AI клиента
+ai_client = AIClient()
 
 # Хранилище контекста разговоров
 chat_contexts: Dict[int, List[Dict]] = {}
@@ -131,27 +222,8 @@ def update_context(user_id: int, role: str, text: str):
 
 
 async def generate_response(user_id: int, user_message: str) -> str:
-    """Генерация ответа через Gemini"""
-    try:
-        context = get_or_create_context(user_id)
-        
-        # Создаём чат с историей
-        chat = gemini_model.start_chat(history=context)
-        
-        # Отправляем сообщение и получаем ответ
-        response = await asyncio.to_thread(
-            chat.send_message,
-            user_message
-        )
-        
-        # Обновляем контекст
-        update_context(user_id, "user", user_message)
-        update_context(user_id, "model", response.text)
-        
-        return response.text
-    except Exception as e:
-        logger.error(f"Ошибка Gemini: {e}")
-        return f"Прошу прощения, сэр, возникла техническая неисправность: {str(e)[:100]}"
+    """Генерация ответа через универсальный AI клиент"""
+    return await ai_client.generate_response(user_id, user_message)
 
 
 def text_to_speech(text: str) -> str:

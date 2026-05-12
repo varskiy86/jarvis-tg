@@ -11,8 +11,10 @@ class Config:
     # Ключи из config.json (редактируй только этот файл!)
     TELEGRAM_BOT_TOKEN = _config_data.get("TELEGRAM_BOT_TOKEN", "")
     GEMINI_API_KEY = _config_data.get("GEMINI_API_KEY", "")
+    HUGGINGFACE_API_KEY = _config_data.get("HUGGINGFACE_API_KEY", "")
     ADMIN_ID = _config_data.get("ADMIN_ID", 0)
     BOT_NAME = _config_data.get("BOT_NAME", "J.A.R.V.I.S.")
+    AI_PROVIDER = _config_data.get("AI_PROVIDER", "huggingface")
     
     # Настройки Gemini
     GEMINI_MODEL = "gemini-2.0-flash"
