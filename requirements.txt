@@ -1,6 +1,7 @@
 python-telegram-bot>=20.0
 google-generativeai>=0.7.2
 huggingface_hub>=0.20.0
+httpx>=0.25.0
 pydantic>=2.0.0
 pyttsx3>=2.90
 speechrecognition>=3.10.4
@@ -8,3 +9,4 @@ standard-aifc>=3.13.0
 pydub>=0.25.1
 requests>=2.31.0
 pillow>=10.0.0
+urllib3>=2.0.0

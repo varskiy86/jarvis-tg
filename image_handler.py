@@ -4,12 +4,11 @@
 - Анализ/редактирование через Gemini
 - Поиск похожих изображений
 """
-import aiohttp
+import httpx
 import io
 import base64
 from typing import Optional, List, Tuple
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
-import google.generativeai as genai
 from config import config
 
 
@@ -50,18 +49,18 @@ class ImageHandler:
                 params += f"&seed={seed}"
             
             # Кодируем промпт для URL
-            import urllib.parse
-            encoded_prompt = urllib.parse.quote(enhanced_prompt)
+            from urllib.parse import quote
+            encoded_prompt = quote(enhanced_prompt)
             url = f"{self.POLLINATIONS_URL}{encoded_prompt}{params}"
             
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as response:
-                    if response.status == 200:
-                        image_data = await response.read()
-                        return image_data
-                    else:
-                        print(f"Ошибка генерации: {response.status}")
-                        return None
+            async with httpx.AsyncClient(timeout=60) as client:
+                response = await client.get(url)
+                if response.status_code == 200:
+                    image_data = response.content
+                    return image_data
+                else:
+                    print(f"Ошибка генерации: {response.status_code}")
+                    return None
                         
         except Exception as e:
             print(f"Ошибка при генерации изображения: {e}")
