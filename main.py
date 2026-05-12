@@ -20,7 +20,6 @@ import speech_recognition as sr
 from pydub import AudioSegment
 from telegram import Bot, Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
-from telegram.ext import State
 from telegram.constants import ParseMode
 import telegram
 
@@ -63,17 +62,7 @@ error_logger.setLevel(logging.ERROR)
 application = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
 bot = application.bot
 
-# Состояния FSM
-class ImageGenState:
-    waiting_for_prompt = State()
-
-class ImageEditState:
-    waiting_for_image = State()
-
-class AdminState:
-    waiting_for_admin_id = State()
-    waiting_for_ban_reason = State()
-    waiting_for_broadcast = State()
+# FSM состояния убраны для упрощения
 
 # ========== AI КЛИЕНТЫ ==========
 
@@ -1331,7 +1320,6 @@ def setup_handlers():
     application.add_handler(CommandHandler("start", cmd_start))
     application.add_handler(CommandHandler("clear", cmd_clear))
     application.add_handler(CommandHandler("status", cmd_status))
-    application.add_handler(CommandHandler("generate", cmd_generate))
     
     # Текстовые сообщения
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
