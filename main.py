@@ -13,8 +13,6 @@ from typing import Dict, List
 # AI провайдеры
 import google.generativeai as genai
 from huggingface_hub import InferenceClient
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
-import torch
 
 import pyttsx3
 import speech_recognition as sr
@@ -72,21 +70,11 @@ class AIClient:
                 system_instruction=config.SYSTEM_PROMPT
             )
         elif self.provider == "huggingface":
-            # Инициализация Hugging Face
+            # Инициализация Hugging Face API (без локальных моделей)
             self.hf_client = InferenceClient(
-                model="mistralai/Mistral-7B-Instruct-v0.2",
+                model="microsoft/DialoGPT-medium",
                 token=config.HUGGINGFACE_API_KEY or None
             )
-            # Локальная модель для скорости
-            try:
-                self.local_model = pipeline(
-                    "text-generation",
-                    model="microsoft/DialoGPT-medium",
-                    torch_dtype=torch.float16,
-                    device_map="auto"
-                )
-            except:
-                self.local_model = None
         else:
             raise ValueError(f"Неизвестный AI провайдер: {self.provider}")
     
@@ -117,26 +105,15 @@ class AIClient:
         return response.text
     
     async def _huggingface_response(self, user_id: int, user_message: str) -> str:
-        """Ответ через Hugging Face"""
+        """Ответ через Hugging Face API"""
         try:
-            # Пробуем локальную модель сначала
-            if self.local_model:
-                response = await asyncio.to_thread(
-                    self.local_model,
-                    user_message,
-                    max_length=200,
-                    num_return_sequences=1,
-                    temperature=0.7
-                )
-                result = response[0]["generated_text"] if response else "Не удалось сгенерировать ответ"
-            else:
-                # Fallback на API Hugging Face
-                response = await asyncio.to_thread(
-                    self.hf_client.text_generation,
-                    prompt=user_message,
-                    max_new_tokens=200
-                )
-                result = response[0]["generated_text"]
+            # Используем только API Hugging Face
+            response = await asyncio.to_thread(
+                self.hf_client.text_generation,
+                prompt=user_message,
+                max_new_tokens=150
+            )
+            result = response if isinstance(response, str) else str(response)
             
             update_context(user_id, "user", user_message)
             update_context(user_id, "model", result)
