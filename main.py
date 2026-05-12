@@ -190,9 +190,7 @@ class UserMiddleware:
         return await handler(event, data)
 
 
-# Регистрируем middleware
-dp.message.middleware(UserMiddleware())
-dp.callback_query.middleware(UserMiddleware())
+# Middleware не нужен в python-telegram-bot
 
 
 # ========== ФИЛЬТРЫ ==========
@@ -1208,7 +1206,7 @@ async def process_ban(message: Message, state: FSMContext):
     db.log_action(message.from_user.id, "ban", f"Banned {user_id}: {reason}")
 
 
-@dp.callback_query(F.data.startswith("unban_"), F.func(lambda c: db.is_super_admin(c.from_user.id)))
+@application.callback_query(F.data.startswith("unban_"))
 async def process_unban(callback: types.CallbackQuery):
     """Разбан по кнопке"""
     user_id = int(callback.data.replace("unban_", ""))
@@ -1217,16 +1215,14 @@ async def process_unban(callback: types.CallbackQuery):
     
     if success:
         await callback.message.edit_text(
-            f"{hbold('✅ Пользователь разблокирован')}\n\n"
+            f"*✅ Пользователь разблокирован*\n\n"
             f"ID: `{user_id}`\n\n"
-            f"Разблокирован, сэр.",
-            parse_mode=ParseMode.HTML
+            f"Разблокирован, сэр."
         )
         db.log_action(callback.from_user.id, "unban", f"Unbanned {user_id}")
     else:
         await callback.message.edit_text(
-            f"{hitalic('❌ Ошибка при разблокировке, сэр.')}",
-            parse_mode=ParseMode.HTML
+            f"_❌ Ошибка при разблокировке, сэр._"
         )
     
     await callback.answer()
@@ -1234,7 +1230,7 @@ async def process_unban(callback: types.CallbackQuery):
 
 # ===== РАССЫЛКА =====
 
-@dp.callback_query(F.data == "admin_broadcast", F.func(lambda c: db.is_super_admin(c.from_user.id)))
+@application.callback_query(F.data == "admin_broadcast")
 async def broadcast_start(callback: types.CallbackQuery, state: FSMContext):
     """Начало рассылки"""
     await state.set_state(AdminState.waiting_for_broadcast)
@@ -1249,7 +1245,7 @@ async def broadcast_start(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-@dp.message(AdminState.waiting_for_broadcast, F.func(lambda m: db.is_super_admin(m.from_user.id)))
+@application.message(AdminState.waiting_for_broadcast)
 async def process_broadcast(message: Message, state: FSMContext):
     """Обработка рассылки"""
     await state.clear()
@@ -1288,7 +1284,7 @@ async def process_broadcast(message: Message, state: FSMContext):
 
 # ===== ОТМЕНА =====
 
-@dp.message(Command("cancel"), F.func(lambda m: db.is_admin(m.from_user.id)))
+@application.message(Command("cancel"))
 async def cancel_admin_action(message: Message, state: FSMContext):
     """Отмена текущего действия"""
     current_state = await state.get_state()
@@ -1307,7 +1303,7 @@ async def cancel_admin_action(message: Message, state: FSMContext):
 
 # ===== НАЗАД =====
 
-@dp.callback_query(F.data == "admin_back", F.func(lambda c: db.is_admin(c.from_user.id)))
+@application.callback_query(F.data == "admin_back")
 async def admin_back(callback: types.CallbackQuery):
     """Возврат в админ-панель"""
     await cmd_admin(callback.message)
