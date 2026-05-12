@@ -19,7 +19,6 @@ class ImageHandler:
     POLLINATIONS_URL = "https://image.pollinations.ai/prompt/"
     
     def __init__(self):
-        import google.genai as genai_new
         # В новом API используем client напрямую
         self.gemini_client = genai_new.Client(api_key=config.GEMINI_API_KEY)
     

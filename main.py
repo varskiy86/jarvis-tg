@@ -11,7 +11,6 @@ from io import BytesIO
 from typing import Dict, List
 
 # AI провайдеры
-import google.generativeai as genai
 import google.genai as genai_new
 from huggingface_hub import InferenceClient
 import openai
