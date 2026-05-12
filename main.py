@@ -32,11 +32,35 @@ from image_handler import image_handler
 from database import db
 
 # Настройка логирования
+import logging.handlers
+
+# Создаем папку для логов если нет
+os.makedirs('logs', exist_ok=True)
+
+# Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('logs/jarvis.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
+
+# Отдельный логер для AI
+ai_logger = logging.getLogger('AI')
+ai_handler = logging.FileHandler('logs/ai.log', encoding='utf-8')
+ai_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+ai_logger.addHandler(ai_handler)
+ai_logger.setLevel(logging.INFO)
+
+# Отдельный логер для ошибок
+error_logger = logging.getLogger('ERRORS')
+error_handler = logging.FileHandler('logs/errors.log', encoding='utf-8')
+error_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s\n'))
+error_logger.addHandler(error_handler)
+error_logger.setLevel(logging.ERROR)
 
 # Инициализация бота
 bot = Bot(token=config.TELEGRAM_BOT_TOKEN)
@@ -72,7 +96,7 @@ class AIClient:
         elif self.provider == "huggingface":
             # Инициализация Hugging Face API (без локальных моделей)
             self.hf_client = InferenceClient(
-                model="microsoft/DialoGPT-medium",
+                model="mistralai/Mistral-7B-Instruct-v0.2",
                 token=config.HUGGINGFACE_API_KEY or None
             )
         else:
@@ -107,13 +131,25 @@ class AIClient:
     async def _huggingface_response(self, user_id: int, user_message: str) -> str:
         """Ответ через Hugging Face API"""
         try:
-            # Используем только API Hugging Face
+            # Используем только API Hugging Face с правильными параметрами
             response = await asyncio.to_thread(
                 self.hf_client.text_generation,
-                prompt=user_message,
-                max_new_tokens=150
+                prompt=f"[INST] {user_message} [/INST]",
+                max_new_tokens=150,
+                temperature=0.7,
+                do_sample=True,
+                pad_token_id=2,
+                eos_token_id=1
             )
-            result = response if isinstance(response, str) else str(response)
+            
+            # Извлекаем только сгенерированный текст
+            if isinstance(response, str):
+                result = response.strip()
+                # Убираем промпт из ответа если есть
+                if "[/INST]" in result:
+                    result = result.split("[/INST]")[-1].strip()
+            else:
+                result = str(response)
             
             update_context(user_id, "user", user_message)
             update_context(user_id, "model", result)
