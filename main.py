@@ -63,13 +63,13 @@ application = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
 bot = application.bot
 
 # Состояния FSM
-class ImageGenState(StatesGroup):
+class ImageGenState:
     waiting_for_prompt = State()
 
-class ImageEditState(StatesGroup):
+class ImageEditState:
     waiting_for_image = State()
 
-class AdminState(StatesGroup):
+class AdminState:
     waiting_for_admin_id = State()
     waiting_for_ban_reason = State()
     waiting_for_broadcast = State()
@@ -115,7 +115,7 @@ class AIClient:
         response = await asyncio.to_thread(
             client.models.generate_content,
             model=config.GEMINI_MODEL,
-            contents=user_message,
+            contents=[user_message],
             config=genai_new.types.GenerateContentConfig(
                 system_instruction=config.SYSTEM_PROMPT
             )
