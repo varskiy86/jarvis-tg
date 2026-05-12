@@ -1324,6 +1324,23 @@ async def admin_back(callback: types.CallbackQuery):
     await callback.answer()
 
 
+def setup_handlers():
+    """Регистрация всех хендлеров"""
+    # Команды
+    application.add_handler(CommandHandler("start", cmd_start))
+    application.add_handler(CommandHandler("clear", cmd_clear))
+    application.add_handler(CommandHandler("status", cmd_status))
+    application.add_handler(CommandHandler("generate", cmd_generate))
+    
+    # Текстовые сообщения
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
+    
+    # Голосовые сообщения
+    application.add_handler(MessageHandler(filters.VOICE, handle_voice))
+    
+    logger.info("Хендлеры зарегистрированы")
+
+
 async def main():
     """Запуск бота"""
     logger.info("J.A.R.V.I.S. запускается...")
